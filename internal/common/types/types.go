@@ -16,37 +16,36 @@
 package types
 
 import (
-	"time"
 	"github.com/jinzhu/gorm"
+	"time"
 )
 
 type ActionType string
 
 const (
-	ActionTypeUnknown		ActionType = "Unknown"
-	ActionTypeNone		 	ActionType = "None"
-	ActionTypeAction   	ActionType = "Action"
-	ActionTypeMinor    	ActionType = "Minor"
-	ActionTypeModerate 	ActionType = "Moderate"
-	ActionTypeMajor    	ActionType = "Major"
-	ActionTypeLowWater 	ActionType = "Low Water"
+	ActionTypeUnknown  ActionType = "Unknown"
+	ActionTypeNone     ActionType = "None"
+	ActionTypeAction   ActionType = "Action"
+	ActionTypeMinor    ActionType = "Minor"
+	ActionTypeModerate ActionType = "Moderate"
+	ActionTypeMajor    ActionType = "Major"
+	ActionTypeLowWater ActionType = "Low Water"
 )
 
 type Site struct {
-	ID            string 			`json:"id" gorm:"column:id;primary_key"`
-	Location      string 			`json:"location" gorm:"not null"`
-	State         string 			`json:"state"`
-	IsCurrent     bool 				`json:"isCurrent"`
-	IsInService   bool 				`json:"isInService"`
-	HasData       bool 				`json:"hasData"`
-	CurrentLevel  float64 		`json:"currentLevel"`
-	CurrentFlow   float64 		`json:"currentFlow"`
-	SampleTime 		time.Time		`json:"sampleTime"`
-	CurrentAction ActionType 	`json:"currentAction"`
-	CreatedAt     time.Time 	`json:"createdAt"`
-	UpdatedAt     time.Time 	`json:"updatedAt"`
+	ID            string     `json:"id" gorm:"column:id;primary_key"`
+	Location      string     `json:"location" gorm:"not null"`
+	State         string     `json:"state"`
+	IsCurrent     bool       `json:"isCurrent"`
+	IsInService   bool       `json:"isInService"`
+	HasData       bool       `json:"hasData"`
+	CurrentLevel  float64    `json:"currentLevel"`
+	CurrentFlow   float64    `json:"currentFlow"`
+	SampleTime    time.Time  `json:"sampleTime"`
+	CurrentAction ActionType `json:"currentAction"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 }
-
 
 //GORM methods
 

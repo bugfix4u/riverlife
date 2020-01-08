@@ -16,13 +16,13 @@
 
 package appcontext
 
-import  (
-	"log"
-	"net/http"
-	mh "riverlife/internal/rlapisvr/muxhandler"
-	dbh "riverlife/internal/common/dbhandler"
+import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"log"
+	"net/http"
+	dbh "riverlife/internal/common/dbhandler"
+	mh "riverlife/internal/rlapisvr/muxhandler"
 )
 
 type AppContext struct {
@@ -40,7 +40,7 @@ func (asc *AppContext) InitializeRouter() {
 	sm := mh.NewSiteMux(asc.DB)
 	log.Printf("Setting up mux handlers for %s\n", sm.GetName())
 	sm.InitRouter(asc.Router)
-	
+
 }
 
 func (asc *AppContext) Run(port string) *http.Server {

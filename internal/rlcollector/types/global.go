@@ -19,7 +19,7 @@ import (
 	appctx "riverlife/internal/rlcollector/appcontext"
 )
 
-var StateURL 	string = "https://water.weather.gov/ahps2/rss/obs/%s.rss"
-var SiteURL 	string = "https://water.weather.gov/ahps2/hydrograph_to_xml.php?gage=%s&output=xml"
+var StateURL string = "https://water.weather.gov/ahps2/rss/obs/%s.rss"
+var SiteURL string = "https://water.weather.gov/ahps2/hydrograph_to_xml.php?gage=%s&output=xml"
 
 var Ctx *appctx.AppContext = nil

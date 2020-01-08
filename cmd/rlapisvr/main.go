@@ -18,9 +18,9 @@ package main
 import (
 	"context"
 	"log"
-	appctx "riverlife/internal/rlapisvr/appcontext"
 	"os"
 	"os/signal"
+	appctx "riverlife/internal/rlapisvr/appcontext"
 	"syscall"
 	"time"
 )

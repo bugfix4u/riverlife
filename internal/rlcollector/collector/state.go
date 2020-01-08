@@ -16,24 +16,24 @@
 package collector
 
 import (
-	"context"
-	"fmt"
-	"strings"
-	"sync"
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/mmcdole/gofeed"
 	"os"
 	"path/filepath"
-	rlctypes "riverlife/internal/rlcollector/types"
 	cmtypes "riverlife/internal/common/types"
-	"github.com/mmcdole/gofeed"
+	rlctypes "riverlife/internal/rlcollector/types"
+	"strings"
+	"sync"
 )
 
-func statesWorker(ctx context.Context, id int, 
-									stateJobs <-chan rlctypes.State,
-									siteJobs chan<- cmtypes.Site,
-									wg *sync.WaitGroup,
-									count *rlctypes.SafeCount) {
+func statesWorker(ctx context.Context, id int,
+	stateJobs <-chan rlctypes.State,
+	siteJobs chan<- cmtypes.Site,
+	wg *sync.WaitGroup,
+	count *rlctypes.SafeCount) {
 
 	rlctypes.Ctx.Log.Infof("Starting State Worker %d", id)
 	defer wg.Done()
@@ -48,62 +48,62 @@ func statesWorker(ctx context.Context, id int,
 			count.IncCount(parseStateRSS(state, siteJobs))
 			rlctypes.Ctx.Log.Infof("Ending parser on State Worker %d", id)
 		}
-	}		
+	}
 	rlctypes.Ctx.Log.Infof("State Worker %d finished", id)
 }
 
 func parseStateRSS(state rlctypes.State, siteJobs chan<- cmtypes.Site) int64 {
-rlctypes.Ctx.Log.Infof("Loading locations for " + state.State)
-		parser := gofeed.NewParser()
-		feed, err := parser.ParseURL(fmt.Sprintf(rlctypes.StateURL, state.Abbr))
-		if err != nil {
-			rlctypes.Ctx.Log.Errorf("Error finding state " + state.State)
-			rlctypes.Ctx.Log.Error(err)
-			return 0
-		}
-		var site cmtypes.Site
-		var count int64
-		for _, item := range feed.Items {
-			count++
+	rlctypes.Ctx.Log.Infof("Loading locations for " + state.State)
+	parser := gofeed.NewParser()
+	feed, err := parser.ParseURL(fmt.Sprintf(rlctypes.StateURL, state.Abbr))
+	if err != nil {
+		rlctypes.Ctx.Log.Errorf("Error finding state " + state.State)
+		rlctypes.Ctx.Log.Error(err)
+		return 0
+	}
+	var site cmtypes.Site
+	var count int64
+	for _, item := range feed.Items {
+		count++
 
-			stringTok := strings.Split(item.Title, "Observation -")
-			var obsInfo string = ""
-			if stringTok[0] != "" {
-				loc := strings.LastIndex(stringTok[0], "-")
-				if loc > -1 {
-					runes := []rune(stringTok[0])
-					obsInfo = string(runes[0:loc])
-				} else {
-					obsInfo = stringTok[0]
-				}
-				obsInfo = strings.TrimSpace(obsInfo)
-				getObservationInfo(obsInfo, &site)
+		stringTok := strings.Split(item.Title, "Observation -")
+		var obsInfo string = ""
+		if stringTok[0] != "" {
+			loc := strings.LastIndex(stringTok[0], "-")
+			if loc > -1 {
+				runes := []rune(stringTok[0])
+				obsInfo = string(runes[0:loc])
 			} else {
-				site.IsCurrent = true
-				site.IsInService = true
-				site.HasData = true
-				site.CurrentAction = cmtypes.ActionTypeNone
+				obsInfo = stringTok[0]
 			}
-			value := strings.TrimSpace(stringTok[1])
-			loc := strings.Index(value, "-")
-			if loc > 0 {
-				runes := []rune(value)
-				site.ID = strings.TrimSpace(string(runes[0:loc]))
-				location := strings.TrimSpace(string(runes[loc+1 : len(runes)]))
-
-				runes = []rune(location)
-				start := strings.LastIndex(location, "(")
-				stop := strings.LastIndex(location, ")")
-				if start > 0 && stop > 0 {
-					site.State = string((runes[start+1 : stop]))
-					location = strings.TrimSpace(string(runes[0:start]))
-					site.Location = cleanLocationString(location)
-				}
-			}
-			siteJobs <- site
+			obsInfo = strings.TrimSpace(obsInfo)
+			getObservationInfo(obsInfo, &site)
+		} else {
+			site.IsCurrent = true
+			site.IsInService = true
+			site.HasData = true
+			site.CurrentAction = cmtypes.ActionTypeNone
 		}
-		rlctypes.Ctx.Log.Infof("Finished loading locations for " + state.State)
-		return count
+		value := strings.TrimSpace(stringTok[1])
+		loc := strings.Index(value, "-")
+		if loc > 0 {
+			runes := []rune(value)
+			site.ID = strings.TrimSpace(string(runes[0:loc]))
+			location := strings.TrimSpace(string(runes[loc+1 : len(runes)]))
+
+			runes = []rune(location)
+			start := strings.LastIndex(location, "(")
+			stop := strings.LastIndex(location, ")")
+			if start > 0 && stop > 0 {
+				site.State = string((runes[start+1 : stop]))
+				location = strings.TrimSpace(string(runes[0:start]))
+				site.Location = cleanLocationString(location)
+			}
+		}
+		siteJobs <- site
+	}
+	rlctypes.Ctx.Log.Infof("Finished loading locations for " + state.State)
+	return count
 }
 
 func loadStates() ([]rlctypes.State, error) {
@@ -135,7 +135,7 @@ func getObservationInfo(obs string, site *cmtypes.Site) {
 		site.IsInService = true
 		site.HasData = false
 		site.CurrentAction = cmtypes.ActionTypeNone
-	} else if obs == "Out of Service" {		
+	} else if obs == "Out of Service" {
 		site.IsCurrent = false
 		site.IsInService = false
 		site.HasData = false
@@ -144,21 +144,21 @@ func getObservationInfo(obs string, site *cmtypes.Site) {
 		site.IsCurrent = true
 		site.IsInService = true
 		site.HasData = true
-		if strings.Contains(obs, string(cmtypes.ActionTypeAction)){ 	
+		if strings.Contains(obs, string(cmtypes.ActionTypeAction)) {
 			site.CurrentAction = cmtypes.ActionTypeAction
-		} else if strings.Contains(obs, string(cmtypes.ActionTypeMinor)){ 	
+		} else if strings.Contains(obs, string(cmtypes.ActionTypeMinor)) {
 			site.CurrentAction = cmtypes.ActionTypeMinor
-		} else if strings.Contains(obs, string(cmtypes.ActionTypeModerate)){ 	
+		} else if strings.Contains(obs, string(cmtypes.ActionTypeModerate)) {
 			site.CurrentAction = cmtypes.ActionTypeModerate
-		} else if strings.Contains(obs, string(cmtypes.ActionTypeMajor)){ 	
+		} else if strings.Contains(obs, string(cmtypes.ActionTypeMajor)) {
 			site.CurrentAction = cmtypes.ActionTypeMajor
-		} else if strings.Contains(obs, string(cmtypes.ActionTypeLowWater)){ 	
+		} else if strings.Contains(obs, string(cmtypes.ActionTypeLowWater)) {
 			site.CurrentAction = cmtypes.ActionTypeLowWater
 		} else {
 			//Unknown observation...rlctypes.Ctx.Logging it
 			rlctypes.Ctx.Log.Warnf("Unknown Observation: %s", obs)
 		}
-	} 
+	}
 
 }
 
@@ -169,7 +169,7 @@ func cleanLocationString(location string) string {
 		stop := strings.Index(location, ")")
 		if start > 0 && stop > 0 {
 			runes := []rune(cleanLocation)
-			startString := strings.TrimSpace(string(runes[0 : start]))
+			startString := strings.TrimSpace(string(runes[0:start]))
 			var endString string
 			if stop+1 >= len(runes) {
 				endString = ""

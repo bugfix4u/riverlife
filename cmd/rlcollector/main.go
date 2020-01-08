@@ -16,23 +16,22 @@
 package main
 
 import (
-	rlctypes "riverlife/internal/rlcollector/types"
-	appctx "riverlife/internal/rlcollector/appcontext"
 	"context"
 	"os"
 	"os/signal"
-	"syscall"
-	"sync"
+	appctx "riverlife/internal/rlcollector/appcontext"
 	collector "riverlife/internal/rlcollector/collector"
+	rlctypes "riverlife/internal/rlcollector/types"
+	"sync"
+	"syscall"
 )
-
 
 func main() {
 	rlctypes.Ctx = appctx.New()
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
-  var wg sync.WaitGroup
+	var wg sync.WaitGroup
 	wg.Add(1)
 	go collector.DoStartupCollection(ctx, &wg)
 	wg.Add(1)

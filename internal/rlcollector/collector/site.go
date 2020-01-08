@@ -17,22 +17,22 @@ package collector
 
 import (
 	"context"
-	"strconv"
 	"encoding/xml"
 	"fmt"
-	"net/http"
-	"sync"
 	"io/ioutil"
-	"time"
-	rlctypes "riverlife/internal/rlcollector/types"
+	"net/http"
 	cmtypes "riverlife/internal/common/types"
+	rlctypes "riverlife/internal/rlcollector/types"
+	"strconv"
+	"sync"
+	"time"
 )
 
-func siteWorker(ctx context.Context, id int, 
-								siteJobs <-chan cmtypes.Site,
-								persistJobs chan<- cmtypes.Site,
-								wg *sync.WaitGroup,
-								sc *rlctypes.SafeCount) {
+func siteWorker(ctx context.Context, id int,
+	siteJobs <-chan cmtypes.Site,
+	persistJobs chan<- cmtypes.Site,
+	wg *sync.WaitGroup,
+	sc *rlctypes.SafeCount) {
 	rlctypes.Ctx.Log.Infof("Starting Site Worker %d", id)
 	defer wg.Done()
 	for site := range siteJobs {
@@ -52,64 +52,64 @@ func siteWorker(ctx context.Context, id int,
 
 func parseSiteXML(site cmtypes.Site, persistJobs chan<- cmtypes.Site) int64 {
 	// Skip stations that are out of service or not collecting data
-		if site.IsInService == false || site.HasData == false{
-			rlctypes.Ctx.Log.Infof("Site %s (%s) has no data at this time, skipping data collection.", site.ID, site.Location)
-			return 0
+	if site.IsInService == false || site.HasData == false {
+		rlctypes.Ctx.Log.Infof("Site %s (%s) has no data at this time, skipping data collection.", site.ID, site.Location)
+		return 0
+	}
+
+	rlctypes.Ctx.Log.Infof("Loading site data for " + site.ID)
+	req, err := http.NewRequest("GET", fmt.Sprintf(rlctypes.SiteURL, site.ID), nil)
+	if err != nil {
+		rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
+		rlctypes.Ctx.Log.Error(err)
+		return 0
+	}
+	bytes, err := doRequest(req)
+	if err != nil {
+		rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
+		rlctypes.Ctx.Log.Error(err)
+		return 0
+	}
+
+	var noaaSite rlctypes.NoaaSite
+	err = xml.Unmarshal(bytes, &noaaSite)
+	if err != nil {
+		rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
+		rlctypes.Ctx.Log.Error(err)
+		return 0
+	}
+	if len(noaaSite.Observed.Datums) > 0 {
+		site.CurrentLevel, err = strconv.ParseFloat(noaaSite.Observed.Datums[0].Primary.Text, 64)
+		if err != nil {
+			rlctypes.Ctx.Log.Warnf("Error parsing staging value for site %s", site.ID)
+			rlctypes.Ctx.Log.Warn(err)
+			site.CurrentLevel = 0.0
 		}
 
-		rlctypes.Ctx.Log.Infof("Loading site data for " + site.ID)
-		req, err := http.NewRequest("GET", fmt.Sprintf(rlctypes.SiteURL, site.ID), nil)
-		if err != nil {
-			rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
-			rlctypes.Ctx.Log.Error(err)
-			return 0
-		}
-		bytes, err := doRequest(req)
-		if err != nil {
-			rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
-			rlctypes.Ctx.Log.Error(err)
-			return 0
-		}
-		
-		var noaaSite rlctypes.NoaaSite
-		err = xml.Unmarshal(bytes, &noaaSite)
-		if err != nil {
-			rlctypes.Ctx.Log.Errorf("Error finding site " + site.ID)
-			rlctypes.Ctx.Log.Error(err)
-			return 0
-		}
-		if len(noaaSite.Observed.Datums) > 0 {
-			site.CurrentLevel, err = strconv.ParseFloat(noaaSite.Observed.Datums[0].Primary.Text, 64)
+		if noaaSite.Observed.Datums[0].Secondary.Text != "" {
+			site.CurrentFlow, err = strconv.ParseFloat(noaaSite.Observed.Datums[0].Secondary.Text, 64)
 			if err != nil {
-				rlctypes.Ctx.Log.Warnf("Error parsing staging value for site %s", site.ID)
+				rlctypes.Ctx.Log.Warnf("Error parsing flow value for site %s", site.ID)
 				rlctypes.Ctx.Log.Warn(err)
-				site.CurrentLevel = 0.0
-			}
-
-			if noaaSite.Observed.Datums[0].Secondary.Text != "" {
-				site.CurrentFlow, err = strconv.ParseFloat(noaaSite.Observed.Datums[0].Secondary.Text, 64)
-				if err != nil {
-					rlctypes.Ctx.Log.Warnf("Error parsing flow value for site %s", site.ID)
-					rlctypes.Ctx.Log.Warn(err)
-					site.CurrentFlow = 0.0
-				}
-			} else {
 				site.CurrentFlow = 0.0
 			}
-
-			if site.CurrentFlow < 0 {
-				site.CurrentFlow = 0.0
-			}
-
-			site.SampleTime, err = time.Parse(time.RFC3339, noaaSite.Observed.Datums[0].Valid.Text)
-			if err != nil {
-				rlctypes.Ctx.Log.Warnf("Error parsing time value for site %s", site.ID)
-				rlctypes.Ctx.Log.Warn(err)
-			}
+		} else {
+			site.CurrentFlow = 0.0
 		}
-		persistJobs <- site
-		rlctypes.Ctx.Log.Infof("Finished loading site for " + site.ID)
-		return int64(len(bytes))
+
+		if site.CurrentFlow < 0 {
+			site.CurrentFlow = 0.0
+		}
+
+		site.SampleTime, err = time.Parse(time.RFC3339, noaaSite.Observed.Datums[0].Valid.Text)
+		if err != nil {
+			rlctypes.Ctx.Log.Warnf("Error parsing time value for site %s", site.ID)
+			rlctypes.Ctx.Log.Warn(err)
+		}
+	}
+	persistJobs <- site
+	rlctypes.Ctx.Log.Infof("Finished loading site for " + site.ID)
+	return int64(len(bytes))
 }
 
 func doRequest(req *http.Request) ([]byte, error) {

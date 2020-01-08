@@ -17,9 +17,9 @@ package appcontext
 
 import (
 	"fmt"
-	"os"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
+	"os"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
 )

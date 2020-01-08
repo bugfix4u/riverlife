@@ -19,10 +19,10 @@ package muxhandler
 import (
 	"database/sql"
 	"errors"
-	dbh "riverlife/internal/common/dbhandler"
-	cmtypes "riverlife/internal/common/types"
 	"log"
 	"net/http"
+	dbh "riverlife/internal/common/dbhandler"
+	cmtypes "riverlife/internal/common/types"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"

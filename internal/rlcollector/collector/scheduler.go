@@ -17,19 +17,18 @@ package collector
 
 import (
 	"context"
-	"sync"
-	"time"
+	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
 	rlctypes "riverlife/internal/rlcollector/types"
-	dbh "riverlife/internal/common/dbhandler"
+	"sync"
+	"time"
 )
 
-
-func ScheduleStateCollection(ctx context.Context, wg *sync.WaitGroup){
+func ScheduleStateCollection(ctx context.Context, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(72 * time.Hour) // Run ever 3 days
 	childCtx, cancel := context.WithCancel(ctx)
 	defer wg.Done()
-	for{
+	for {
 		select {
 		case <-ctx.Done():
 			rlctypes.Ctx.Log.Info("Shutting down State Collector")
@@ -44,8 +43,8 @@ func ScheduleStateCollection(ctx context.Context, wg *sync.WaitGroup){
 }
 
 func doStateCollection(ctx context.Context) {
-	stateJobs := make(chan rlctypes.State, 100)
-	siteJobs := make(chan cmtypes.Site, 1000)
+	stateJobs := make(chan rlctypes.State, 60)
+	siteJobs := make(chan cmtypes.Site, 10000)
 	var statewg sync.WaitGroup
 	var persistwg sync.WaitGroup
 	var stats rlctypes.SafeCount
@@ -77,12 +76,11 @@ func doStateCollection(ctx context.Context) {
 	rlctypes.Ctx.Log.Printf("Found %d locations", stats.Count)
 }
 
-
-func ScheduleSiteCollection(ctx context.Context, wg *sync.WaitGroup){
-	ticker := time.NewTicker(1 * time.Hour) // Run ever 3 days
+func ScheduleSiteCollection(ctx context.Context, wg *sync.WaitGroup) {
+	ticker := time.NewTicker(1 * time.Hour) // Run ever 1 hours
 	childCtx, cancel := context.WithCancel(ctx)
 	defer wg.Done()
-	for{
+	for {
 		select {
 		case <-ctx.Done():
 			rlctypes.Ctx.Log.Info("Shutting down Site Collector")
@@ -104,8 +102,8 @@ func doSiteCollection(ctx context.Context) {
 		return
 	}
 
-	siteJobs := make(chan cmtypes.Site, 1000)
-	persistJobs := make(chan cmtypes.Site, 1000)
+	siteJobs := make(chan cmtypes.Site, 10000)
+	persistJobs := make(chan cmtypes.Site, 10000)
 	var sitewg sync.WaitGroup
 	var persistwg sync.WaitGroup
 	var stats rlctypes.SafeCount
@@ -117,7 +115,7 @@ func doSiteCollection(ctx context.Context) {
 
 	for pw := 1; pw <= 10; pw++ {
 		persistwg.Add(1)
-		go persistentSiteWorker(ctx, pw, siteJobs, &persistwg, rlctypes.Ctx.DB, false)
+		go persistentSiteWorker(ctx, pw, persistJobs, &persistwg, rlctypes.Ctx.DB, false)
 	}
 
 	for _, site := range sites {
@@ -132,10 +130,10 @@ func doSiteCollection(ctx context.Context) {
 	rlctypes.Ctx.Log.Printf("Found %d locations", stats.Count)
 }
 
-func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup){
-	stateJobs := make(chan rlctypes.State, 100)
-	siteJobs := make(chan cmtypes.Site, 1000)
-	persistJobs := make(chan cmtypes.Site, 1000)
+func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
+	stateJobs := make(chan rlctypes.State, 60)
+	siteJobs := make(chan cmtypes.Site, 10000)
+	persistJobs := make(chan cmtypes.Site, 10000)
 	var statewg sync.WaitGroup
 	var sitewg sync.WaitGroup
 	var persistwg sync.WaitGroup
@@ -167,14 +165,14 @@ func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup){
 	for _, state := range states {
 		stateJobs <- state
 	}
-	
+
 	close(stateJobs)
 	rlctypes.Ctx.Log.Infof("Closed state job channel")
 	statewg.Wait()
-	
+
 	close(siteJobs)
 	rlctypes.Ctx.Log.Infof("Closed site job channel")
-	sitewg.Wait()	
+	sitewg.Wait()
 
 	close(persistJobs)
 	rlctypes.Ctx.Log.Infof("Closed persist job channel")

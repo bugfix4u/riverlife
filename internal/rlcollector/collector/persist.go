@@ -17,11 +17,11 @@ package collector
 
 import (
 	"context"
-	"sync"
 	"github.com/jinzhu/gorm"
-	cmtypes "riverlife/internal/common/types"
 	dbh "riverlife/internal/common/dbhandler"
+	cmtypes "riverlife/internal/common/types"
 	rlctypes "riverlife/internal/rlcollector/types"
+	"sync"
 )
 
 func persistentSiteWorker(ctx context.Context, id int, siteJobs <-chan cmtypes.Site, wg *sync.WaitGroup, db *gorm.DB, checkCreate bool) {
