@@ -1,0 +1,210 @@
+[
+  {
+    "state": "Alabama",
+    "abbr": "al"
+  },
+  {
+    "state": "Alaska",
+    "abbr": "ak"
+  },
+  {
+    "state": "Arizona",
+    "abbr": "az"
+  },
+  {
+    "state": "Arkansas",
+    "abbr": "ar"
+  },
+  {
+    "state": "California",
+    "abbr": "ca"
+  },
+  {
+    "state": "Colorado",
+    "abbr": "co"
+  },
+  {
+    "state": "Connecticut",
+    "abbr": "ct"
+  },
+  {
+    "state": "Delaware",
+    "abbr": "de"
+  },
+  {
+    "state": "District of Columbia",
+    "abbr": "dc"
+  },
+  {
+    "state": "Florida",
+    "abbr": "fl"
+  },
+  {
+    "state": "Georgia",
+    "abbr": "ga"
+  },
+  {
+    "state": "Hawaii",
+    "abbr": "hi"
+  },
+  {
+    "state": "Idaho",
+    "abbr": "id"
+  },
+  {
+    "state": "Illinois",
+    "abbr": "il"
+  },
+  {
+    "state": "Indiana",
+    "abbr": "in"
+  },
+  {
+    "state": "Iowa",
+    "abbr": "ia"
+  },
+  {
+    "state": "Kansas",
+    "abbr": "ks"
+  },
+  {
+    "state": "Kentucky",
+    "abbr": "ky"
+  },
+  {
+    "state": "Louisiana",
+    "abbr": "la"
+  },
+  {
+    "state": "Maine",
+    "abbr": "me"
+  },
+  {
+    "state": "Maryland",
+    "abbr": "md"
+  },
+  {
+    "state": "Massachusetts",
+    "abbr": "ma"
+  },
+  {
+    "state": "Michigan",
+    "abbr": "mi"
+  },
+  {
+    "state": "Minnesota",
+    "abbr": "mn"
+  },
+  {
+    "state": "Mississippi",
+    "abbr": "ms"
+  },
+  {
+    "state": "Missouri",
+    "abbr": "mo"
+  },
+  {
+    "state": "Montana",
+    "abbr": "mt"
+  },
+  {
+    "state": "Nebraska",
+    "abbr": "ne"
+  },
+  {
+    "state": "Nevada",
+    "abbr": "nv"
+  },
+  {
+    "state": "New Hampshire",
+    "abbr": "nh"
+  },
+  {
+    "state": "New Jersey",
+    "abbr": "nj"
+  },
+  {
+    "state": "New Mexico",
+    "abbr": "nm"
+  },
+  {
+    "state": "New York",
+    "abbr": "ny"
+  },
+  {
+    "state": "North Carolina",
+    "abbr": "nc"
+  },
+  {
+    "state": "North Dakota",
+    "abbr": "nd"
+  },
+  {
+    "state": "Ohio",
+    "abbr": "oh"
+  },
+  {
+    "state": "Oklahoma",
+    "abbr": "ok"
+  },
+  {
+    "state": "Oregon",
+    "abbr": "or"
+  },
+  {
+    "state": "Pennsylvania",
+    "abbr": "pa"
+  },
+  {
+    "state": "Puerto Rico",
+    "abbr": "pr"
+  },
+  {
+    "state": "Rhode Island",
+    "abbr": "ri"
+  },
+  {
+    "state": "South Carolina",
+    "abbr": "sc"
+  },
+  {
+    "state": "South Dakota",
+    "abbr": "sd"
+  },
+  {
+    "state": "Tennessee",
+    "abbr": "tn"
+  },
+  {
+    "state": "Texas",
+    "abbr": "tx"
+  },
+  {
+    "state": "Utah",
+    "abbr": "ut"
+  },
+  {
+    "state": "Vermont",
+    "abbr": "vt"
+  },
+  {
+    "state": "Virginia",
+    "abbr": "va"
+  },
+  {
+    "state": "Washington",
+    "abbr": "wa"
+  },
+  {
+    "state": "West Virginia",
+    "abbr": "wv"
+  },
+  {
+    "state": "Wisconsin",
+    "abbr": "wi"
+  },
+  {
+    "state": "Wyoming",
+    "abbr": "wy"
+  }
+]
