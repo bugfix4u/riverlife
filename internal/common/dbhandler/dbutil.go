@@ -23,13 +23,11 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var dbUser = "rluser"
-var dbPassword = "H1r3M3N0W"
-var dbName = "rldb"
-var dbHost = "localhost"
-
-//var dbHost 		= "rl-postgres.rl-network"
-var dbPort = "5432"
+var dbUser 			= "rluser"
+var dbPassword 	= "H1r3M3N0W"
+var dbName 			= "rldb"
+var dbHost 			= "rl-postgres.rl-network"
+var dbPort 			= "5432"
 
 // Gorm wants to know the type of database
 var dialect = "postgres"

@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Compile the River Life microservices.  The script takes optional input parameters.
+# If no parameters are specified, then it means compile ALL services.
+#
+# Examples:
+#    # compile all River Life microservices
+#    # ./rl_compile
+#
+#    # compiles ONLY the repmgr and orch services.
+#    $ ./rl_compile repmgr orch
+#
+#    # compiles ONLY the apisvr (includes GUI code)
+#    $ ./rl_compile apisvr
+#
+
+source version
+source globals
+
+# Location of build script inside the build container
+GOBUILD=/root/rlcode
+BUILD_LOG=${PKG_LOCATION}/build.log
+
+# Setup build directory
+mkdir -p $PKG_LOCATION
+
+SERVICES=("${@:-${RL_COMPILED_SERVICES[@]}}")
+
+function Startup {
+   echo -e "--------------------------------------------------"
+   echo -e "- Building rl-build image"
+   echo -e "--------------------------------------------------"
+   $RLCODE/scripts/builder/build.sh $RLBUILD $RL_VERSION
+   if [ $? -eq 0 ];then
+      echo -e "...docker build $RLBUILD: SUCCESS\n"
+   else
+      echo -e "...docker build $RLBUILD: FAILED\n"
+      exit 1
+   fi
+
+   echo -e "--------------------------------------------------"
+   echo -e "- Launching rl-build container"
+   echo -e "--------------------------------------------------"
+   $RLCODE/scripts/builder/run.sh $RLBUILD $RL_VERSION
+   if [ $? -eq 0 ];then
+      echo -e "...docker run $RLBUILD: SUCCESS\n"
+   else
+      echo -e "...docker run $RLBUILD: FAILED\n"
+      exit 1
+   fi
+
+   echo "Container startup delay: sleep ${STARTUP_DELAY} seconds"
+   sleep ${STARTUP_DELAY}
+}
+
+running=$(docker ps -q -f name=${RLBUILD})
+latest=$(docker ps -q -f ancestor=${RLBUILD}:${RL_VERSION})
+echo "running=${running}, latest=${latest}"
+if [[ -z ${running} || -z ${latest} ]];then
+   # Startup rl-build container if:
+   #   a) NOT running or
+   #   b) NOT running latest version of the container
+   Startup
+else
+   echo "${RLBUILD} is already running"
+fi
+
+echo -e "--------------------------------------------------"
+echo -e "- Compiling River Life code inside container..."
+echo -e "--------------------------------------------------"
+rm -f $BUILD_LOG
+for service in "${RL_COMPILED_SERVICES[@]}";do
+
+   if [ ! -d ../cmd/${service} ]; then
+      echo "Nothing to compile for ${service}"
+      continue
+   fi
+
+   echo -n "Compiling ${service} ..."
+   mkdir -p ../builds/${service}
+
+   stime=$(date +%s)
+   docker exec rl-build sh -c "//root/rlcode/gobuild.sh ${service}" >> $BUILD_LOG 2>&1
+   build_rc=$?
+   etime=$(date +%s)
+   echo "COMPLETE: duration=$(($etime-$stime)) seconds"
+
+   if [ ${build_rc} -ne 0 ];then
+      # Shutdown container
+      #docker rm $RLBUILD -f
+      cat $BUILD_LOG
+      echo -e "\nCompile FAILED, build_rc=${build_rc}\n\n"
+      FixOwnership
+      exit -1
+   fi
+
+   if [ -d ${RESOURCE_LOCATION}/${service} ];then
+      echo "Copying resources for ${service} ..."
+      cp -v ${RESOURCE_LOCATION}/${service}/* ${PKG_LOCATION}/${service}
+   fi
+done
+echo ""
+cat $BUILD_LOG
+echo -e "\nCompile complete, build_rc=${build_rc}\n\n"
+
+FixOwnership
+
+
+

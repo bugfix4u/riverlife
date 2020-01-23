@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# This script packages the following into a tar.gz
+#    builds/riverlife.tar.gz
+#    rl_run
+#    rl_install
+#
+
+source version
+source globals
+
+echo -e "--------------------------------------------------"
+echo -e "- Packaging ${PKG_NAME} ..."
+echo -e "--------------------------------------------------"
+rm -f ${PKG_LOCATION}/${PKG_NAME}*tar.gz
+rl_version=$(git describe)
+echo ${rl_version} > ${PKG_LOCATION}/version
+FixOwnership
+BASEDIR=$(dirname $RLCODE)
+REL_PKG_LOCATION=${PKG_LOCATION#$BASEDIR/}
+REL_SCRIPTS_LOCATION=${SCRIPTS_LOCATION#$BASEDIR/}
+readarray -t IMAGES < <( find $RLCODE -name *.image -printf "%P\n")
+BASENAME=$(basename $RLCODE)
+relimages=()
+for image in "${IMAGES[@]}"; do
+   relimages+=(${BASENAME}/${image})
+done
+PKG=${PKG_LOCATION}/${PKG_NAME}-${rl_version}.tar.gz
+tar -C ${BASEDIR} -zcvf $PKG \
+   ${REL_PKG_LOCATION}/version ${relimages[@]} \
+   ${REL_PKG_LOCATION}/docker-compose.yml ${REL_SCRIPTS_LOCATION}/rl_run \
+   ${REL_SCRIPTS_LOCATION}/rl_install ${REL_SCRIPTS_LOCATION}/version \
+   ${REL_SCRIPTS_LOCATION}/globals
+if [ $? -eq 0 ];then
+   echo -e "Successfully packaged ${PKG_NAME}\n"
+else
+   echo -e "FAILED to build package ${PKG_NAME}\n"
+   exit 1
+fi
+
+
+exit 0

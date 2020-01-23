@@ -1,0 +1,45 @@
+version: '3.6'
+
+networks:
+   rl-network:
+      name: "rl-network"
+      driver: "bridge"
+
+services:
+   rl-postgres:
+      image: rl-postgres:${RL_VERSION}
+      container_name: rl-postgres
+      hostname: rl-postgres
+      tty: true
+      stdin_open: true
+      restart: always
+      networks:
+         - rl-network
+      environment:
+         POSTGRES_DB: rldb
+         POSTGRES_USER: rluser
+         POSTGRES_PASSWORD: H1r3M3N0W
+      ports:
+         - 5432:5432
+   
+   rl-collector:
+      image: rl-collector:${RL_VERSION}
+      container_name: rl-collector
+      hostname: rl-collector
+      tty: true
+      stdin_open: true
+      restart: always
+      networks:
+         - rl-network
+
+   rl-apisvr:
+      image: rl-apisvr:${RL_VERSION}
+      container_name: rl-apisvr
+      hostname: rl-apisvr
+      tty: true
+      stdin_open: true
+      restart: always
+      networks:
+         - rl-network
+      ports:
+         - 8080:8080

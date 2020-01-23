@@ -108,7 +108,7 @@ func parseStateRSS(state rlctypes.State, siteJobs chan<- cmtypes.Site) int64 {
 
 func loadStates() ([]rlctypes.State, error) {
 	var states []rlctypes.State
-	var locationJSON = filepath.FromSlash("../../resources/locations.json")
+	var locationJSON = filepath.FromSlash("./locations.json")
 	rlctypes.Ctx.Log.Infof("Loading data for states")
 	file, err := os.Open(locationJSON)
 	if err != nil {

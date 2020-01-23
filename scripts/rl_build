@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Builds the Docker images for the River Life microservice .  The script takes
+# optional input parameters. If no parameters are specified, then it
+# means build ALL services.
+#
+# Examples:
+#    # build all River Life microservices
+#    # ./rl_build
+#
+#    # build ONLY the collector services.
+#    $ ./rl_build collector
+#
+#    # build ONLY the apisvr
+#    $ ./rl_build apisvr
+#
+
+source version
+source globals
+
+ALL_SERVICES=("${RL_COMPILED_SERVICES[@]}" "${RL_DOCKER_ONLY_SERVICES[@]}")
+
+SERVICES=("${@:-${ALL_SERVICES[@]}}")
+
+DOCKER_BUILD_SERVICES=("${@:-${RL_COMPILED_SERVICES[@]}}")
+
+
+# Copy over the Dockerfiles to each microservice dir
+# (docker compose doesn't allow you to COPY/ADD files to the container)
+echo -e "--------------------------------------------------"
+echo -e "- Setting up Docker configuration files..."
+echo -e "--------------------------------------------------"
+#Setting up build dirs for docker only services
+cp ${DEPLOYMENT_LOCATION}/docker-compose* ${PKG_LOCATION}
+
+for service in "${SERVICES[@]}";do
+   echo "${service}: loading Dockerfile ..."
+   if [ ! -d ${PKG_LOCATION}/${service} ];then
+      mkdir -p ${PKG_LOCATION}/${service}
+   fi
+
+   if [ ! -f ${DEPLOYMENT_LOCATION}/${service}/Dockerfile ];then
+      echo "${service}: no Dockerfile for this service"
+      continue
+   fi
+   
+   cp ${DEPLOYMENT_LOCATION}/${service}/Dockerfile ${PKG_LOCATION}/${service}
+done
+echo ""
+
+echo -e "--------------------------------------------------"
+echo -e "- Building River Life micro services..."
+echo -e "--------------------------------------------------"
+# Prepend "rl-" to to each service
+rlservices=()
+for service in "${SERVICES[@]}";do
+   rlservices+=("rl-"$service)
+done
+
+# Use compose to build the microservices
+cd ${PKG_LOCATION}
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml build ${rlservices[@]}
+if [ $? -eq 0 ];then
+   echo -e "Successfully built microservices\n"
+else
+   echo -e "\nFAILED to build microservices\n"
+   FixOwnership
+   exit -1
+fi
+
+echo -e "--------------------------------------------------"
+echo -e "- Save docker images for packaging"
+echo -e "--------------------------------------------------"
+for service in "${SERVICES[@]}";do
+
+   echo -e "Exporting ${service} micro service..."
+   docker save rl-${service}:${RL_VERSION} -o ${PKG_LOCATION}/${service}/rl-${service}.image
+   if [ $? -ne 0 ];then
+      echo -e "\t...export FAILED!"
+   fi
+done
+echo -e "\nBuild complete"
+FixOwnership

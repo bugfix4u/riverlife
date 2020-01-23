@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Global variables used in the build and packaging scripts
+#
+
+# Name of the build container
+export RLBUILD="rl-build"
+
+# Location of the source code to map into the container
+export RLCODE="${RLCODE:-/root/repo}"
+
+export PKG_NAME="riverlife"
+export PKG_LOCATION=${RLCODE}/builds
+export SCRIPTS_LOCATION=${RLCODE}/scripts
+export RESOURCE_LOCATION=${RLCODE}/resources
+export DEPLOYMENT_LOCATION=${RLCODE}/deployments
+
+# Array of RL microservices
+declare -a RL_COMPILED_SERVICES=("apisvr" "collector")
+declare -a RL_DOCKER_ONLY_SERVICES=("postgres")
+
+# Add a container startup delay
+# (delay before using)
+export STARTUP_DELAY=3  # seconds
+
+FixOwnership () {
+  if [ ! -z "$SUDO_USER" ]; then
+    if [ ! -z "$SUDO_GID" ]; then
+      chown -R ${SUDO_USER}:${SUDO_GID} $PKG_LOCATION
+    else
+      chown -R ${SUDO_USER} $PKG_LOCATION
+    fi
+  fi
+}

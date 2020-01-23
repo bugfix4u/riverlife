@@ -1,0 +1,11 @@
+version: '3.6'
+
+services:
+   rl-postgres:
+      build: ./postgres/
+
+   rl-collector:
+      build: ./collector/
+      
+   rl-apisvr:
+      build: ./apisvr/

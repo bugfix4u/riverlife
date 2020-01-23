@@ -16,7 +16,6 @@
 package appcontext
 
 import (
-	"fmt"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -39,11 +38,8 @@ func New() *AppContext {
 }
 
 func (asc *AppContext) initializeFlags() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		home = "/tmp"
-	}
-	asc.LogOutput = fmt.Sprintf("%s/rlcollector.log", home)
+	//asc.LogOutput = "/rlcollector.log"
+	asc.LogOutput = ""
 }
 
 func (asc *AppContext) initializeLogger() {

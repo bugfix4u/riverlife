@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+#
+
+source version
+source globals
+
+FILENAME=`basename "$0"`
+
+# Control vars
+KILL=0
+
+cd $PKG_LOCATION
+
+function Usage {
+   echo -e ""
+   echo -e "Starts River Life micro-services"
+   echo -e ""
+   echo -e "Usage: $FILENAME [-h] [-s [<service>] | -k] [-o <dev|prod>]"
+   echo -e ""
+   echo -e "Where:"
+   echo -e "\t -s: start specified services"
+   echo -e "\t -k: kill all"
+   echo -e "\t -o: operational mode, where:"
+   echo -e "\t\t 'dev': development mode"
+   echo -e "\t\t 'prod': production mode"   
+   echo -e "\t(neither -s or -k will start all services)"
+   echo -e ""
+}
+
+function Kill {
+   echo -e "--------------------------------------------------"
+   echo -e "- Stoppping River Life services"
+   echo -e "--------------------------------------------------"
+   echo -e "Stopping microservices"
+   docker-compose stop ${@}
+   rc=$?
+   if [ ${rc} -ne 0 ];then
+      echo -e "\t...FAILED!, rc=${rc}\n"
+      exit -1
+   fi
+
+   echo -e "Removing microservices"
+   docker-compose rm -fs ${@}
+   rc=$?
+   if [ ${rc} -ne 0 ];then
+      echo -e "\t...FAILED!, rc=${rc}\n"
+      exit -1
+   fi
+
+   echo "Stop container delay: sleep ${STARTUP_DELAY} seconds"
+   sleep ${STARTUP_DELAY}
+
+   running=$(docker-compose ps -q ${@})
+   if [ ! -z ${running} ];then
+      echo "Unable to stop and remove microservices!"
+      docker-compose ps
+      exit -1
+   fi
+}
+
+function Start {
+   echo -e "--------------------------------------------------"
+   echo -e "- Starting River Life services"
+   echo -e "- (starting services in ${OPMODE} mode)"
+   echo -e "--------------------------------------------------"
+   if [[ ${OPMODE} == "dev" ]];then
+      docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --no-build -d ${@}
+      rc=$?
+   else
+      docker-compose -f docker-compose.yml up --no-build -d ${@}
+      rc=$?
+   fi
+
+   echo "Container startup delay: sleep ${STARTUP_DELAY} seconds"
+   sleep ${STARTUP_DELAY}
+
+   if [ ${rc} -ne 0 ];then
+      echo -e "\nStarting microservices FAILED!\n"
+      exit -1
+   fi
+
+   echo -e "\ndocker ps"
+   docker ps | grep rl-
+   echo ""
+}
+
+START=()
+while getopts 'haks:o:' opt; do
+   case $opt in
+      h) Usage
+         exit
+         ;;
+      s) START+=("$OPTARG")
+         ;;
+      k) KILL=1
+         ;;
+      o) OPMODE="$OPTARG"
+         ;;
+      *) Usage
+         exit
+         ;;
+   esac
+done
+
+# Allow kill regardless of OPMODE
+if [[ $KILL == 1 ]]; then
+   echo -e "Kill (-k) option specified\n"
+   Kill
+   exit 0
+fi
+
+# Verify OPMODE
+if [[ ${OPMODE} != "dev" && ${OPMODE} != "prod" ]];then
+   if [[ ${OPMODE} == "" ]];then
+      echo -e "Defaulting to dev mode"
+      OPMODE="dev"
+   else
+      echo -e "Invalid operation mode: ${OPMODE}"
+      echo -e "Must specify either dev or prod\n\n"
+      exit 1
+   fi
+fi
+
+# Start services
+if [[ -n $START ]];then
+   echo -e "Start (-s) option specified to start services: ${START[@]}\n"
+
+   # Prepend "rl-" to to each service
+   rlservices=()
+   for service in "${START[@]}";do
+      rlservices+=("rl-"$service)
+   done
+
+   Kill ${rlservices[@]}
+   Start ${rlservices[@]}
+else
+   Kill
+   Start
+fi
+
+
