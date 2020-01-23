@@ -6,11 +6,10 @@ This code is part of the River Life project I am developing, to build an Amazon 
 ## ToDo
 This is the current ToDo list in no particular order or priority
 
-- Create build, run and deploy scripts
 - Add logrus logging to API server
 - Implement HTTP HEAD check to check if data has changed before downloading XML
 - Add a Redis service to handle some caching for the collection service
 - Create additional REST API's for seaching the data by different parameters
 - Add paging support to REST API's that return lists of information
-- Add config files and runtime parameter to overide defaults for logging, threads, polling times, etc
+- Add configuration to overide defaults for logging, threads, polling times, etc
 - ...
