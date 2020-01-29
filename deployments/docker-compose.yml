@@ -15,10 +15,8 @@ services:
       restart: always
       networks:
          - rl-network
-      environment:
-         POSTGRES_DB: rldb
-         POSTGRES_USER: rluser
-         POSTGRES_PASSWORD: H1r3M3N0W
+      env_file:
+         - ./postgres/postgres.env
       ports:
          - 5432:5432
    
@@ -31,6 +29,8 @@ services:
       restart: always
       networks:
          - rl-network
+      env_file:
+         - ./collector/collector.env
 
    rl-apisvr:
       image: rl-apisvr:${RL_VERSION}
@@ -43,3 +43,5 @@ services:
          - rl-network
       ports:
          - 8080:8080
+      env_file:
+         - ./apisvr/apisvr.env

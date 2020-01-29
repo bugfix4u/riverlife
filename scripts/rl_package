@@ -20,14 +20,19 @@ BASEDIR=$(dirname $RLCODE)
 REL_PKG_LOCATION=${PKG_LOCATION#$BASEDIR/}
 REL_SCRIPTS_LOCATION=${SCRIPTS_LOCATION#$BASEDIR/}
 readarray -t IMAGES < <( find $RLCODE -name *.image -printf "%P\n")
+readarray -t ENVS < <( find $RLCODE -path $RLCODE/configs -prune -o -name *.env -printf "%P\n")
 BASENAME=$(basename $RLCODE)
 relimages=()
 for image in "${IMAGES[@]}"; do
    relimages+=(${BASENAME}/${image})
 done
+relenvs=()
+for env in "${ENVS[@]}"; do
+   relenvs+=(${BASENAME}/${env})
+done
 PKG=${PKG_LOCATION}/${PKG_NAME}-${rl_version}.tar.gz
 tar -C ${BASEDIR} -zcvf $PKG \
-   ${REL_PKG_LOCATION}/version ${relimages[@]} \
+   ${REL_PKG_LOCATION}/version ${relimages[@]} ${relenvs[@]} \
    ${REL_PKG_LOCATION}/docker-compose.yml ${REL_SCRIPTS_LOCATION}/rl_run \
    ${REL_SCRIPTS_LOCATION}/rl_install ${REL_SCRIPTS_LOCATION}/version \
    ${REL_SCRIPTS_LOCATION}/globals

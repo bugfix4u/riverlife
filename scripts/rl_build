@@ -45,6 +45,12 @@ for service in "${SERVICES[@]}";do
    fi
    
    cp ${DEPLOYMENT_LOCATION}/${service}/Dockerfile ${PKG_LOCATION}/${service}
+
+   if [ -d ${CONFIG_LOCATION}/${service} ];then
+      echo "${service}: loading configuration files ..."
+      cp -v ${CONFIG_LOCATION}/${service}/* ${PKG_LOCATION}/${service}
+   fi
+   
 done
 echo ""
 

@@ -18,12 +18,12 @@ package muxhandler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
+	log "github.com/sirupsen/logrus"
 )
 
-func RespondWithError(w http.ResponseWriter, code int, message string) {
-	log.Printf("Responding with Error: %s\n", message)
+func RespondWithError(w http.ResponseWriter, code int, message string, log *log.Logger) {
+	log.Warnf("Responding with Error: %s\n", message)
 	messages := []string{message}
 	RespondWithJSON(w, code, map[string][]string{"errors": messages})
 }

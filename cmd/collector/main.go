@@ -28,6 +28,7 @@ import (
 
 func main() {
 	rlctypes.Ctx = appctx.New()
+	defer rlctypes.Ctx.DB.Close()
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())

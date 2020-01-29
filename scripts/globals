@@ -14,6 +14,7 @@ export PKG_LOCATION=${RLCODE}/builds
 export SCRIPTS_LOCATION=${RLCODE}/scripts
 export RESOURCE_LOCATION=${RLCODE}/resources
 export DEPLOYMENT_LOCATION=${RLCODE}/deployments
+export CONFIG_LOCATION=${RLCODE}/configs
 
 # Array of RL microservices
 declare -a RL_COMPILED_SERVICES=("apisvr" "collector")

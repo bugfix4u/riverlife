@@ -17,29 +17,25 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
-	appctx "riverlife/internal/rlapisvr/appcontext"
 	"syscall"
 	"time"
+	rlatypes "riverlife/internal/rlapisvr/types"
+	appctx "riverlife/internal/rlapisvr/appcontext"
 )
 
-var port = ":8080"
 
 func main() {
-	apiSvr := appctx.AppContext{}
-	apiSvr.InitializeDB()
-	defer apiSvr.DB.Close()
-	apiSvr.InitializeRouter()
+ 	rlatypes.Ctx = appctx.New()
+	defer rlatypes.Ctx.DB.Close()
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	log.Println("Starting the River Life API server on port" + port)
-	restSvr := apiSvr.Run(port)
+	restSvr := rlatypes.Ctx.Run()
 	<-stop
-	log.Println("Shutting down the River Life API server...")
+	rlatypes.Ctx.Log.Info("Shutting down the River Life API server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	restSvr.Shutdown(ctx)
-	log.Println("River Life server gracefully stopped")
+	rlatypes.Ctx.Log.Info("River Life server gracefully stopped")
 }

@@ -30,6 +30,9 @@ const (
 	ActionTypeModerate ActionType = "Moderate"
 	ActionTypeMajor    ActionType = "Major"
 	ActionTypeLowWater ActionType = "Low Water"
+
+	Json string = "json"
+	Text string = "text"
 )
 
 type Site struct {

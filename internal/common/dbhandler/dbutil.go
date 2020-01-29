@@ -23,25 +23,15 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var dbUser 			= "rluser"
-var dbPassword 	= "H1r3M3N0W"
-var dbName 			= "rldb"
-var dbHost 			= "rl-postgres.rl-network"
-var dbPort 			= "5432"
-
 // Gorm wants to know the type of database
 var dialect = "postgres"
 
-func GetDbConnectString() string {
+func GetDbConnection(dbUser, dbPassword, dbName, dbHost, dbPort string) *gorm.DB {
 	connectString := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port= %s sslmode=disable",
 		dbHost, dbUser, dbPassword, dbName, dbPort,
 	)
-	return connectString
-}
-
-func GetDbConnection() *gorm.DB {
-	conn, err := gorm.Open(dialect, GetDbConnectString())
+	conn, err := gorm.Open(dialect, connectString)
 	if err != nil {
 		log.Fatal(err)
 	}

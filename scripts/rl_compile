@@ -98,6 +98,7 @@ for service in "${RL_COMPILED_SERVICES[@]}";do
       echo "Copying resources for ${service} ..."
       cp -v ${RESOURCE_LOCATION}/${service}/* ${PKG_LOCATION}/${service}
    fi
+
 done
 echo ""
 cat $BUILD_LOG

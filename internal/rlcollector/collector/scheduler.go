@@ -1,7 +1,7 @@
 // River Life
-// Copyright (C) 2020  Denny Chsmbers
+// Copyright (C) 2020  Denny Chambers
 
-// This progrsm is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
@@ -25,7 +25,8 @@ import (
 )
 
 func ScheduleStateCollection(ctx context.Context, wg *sync.WaitGroup) {
-	ticker := time.NewTicker(72 * time.Hour) // Run ever 3 days
+	rlctypes.Ctx.Log.Infof("Setting up state collection timer for every %f hours", rlctypes.Ctx.Config.StateTickerTimeHour.Hours())
+	ticker := time.NewTicker(rlctypes.Ctx.Config.StateTickerTimeHour)
 	childCtx, cancel := context.WithCancel(ctx)
 	defer wg.Done()
 	for {
@@ -43,18 +44,18 @@ func ScheduleStateCollection(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func doStateCollection(ctx context.Context) {
-	stateJobs := make(chan rlctypes.State, 60)
-	siteJobs := make(chan cmtypes.Site, 10000)
+	stateJobs := make(chan rlctypes.State, rlctypes.Ctx.Config.StateChannelSize)
+	siteJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.SiteChannelSize)
 	var statewg sync.WaitGroup
 	var persistwg sync.WaitGroup
 	var stats rlctypes.SafeCount
 
-	for stw := 1; stw <= 10; stw++ {
+	for stw := 1; stw <= rlctypes.Ctx.Config.StateWorkerThreadCount; stw++ {
 		statewg.Add(1)
 		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, &stats)
 	}
 
-	for pw := 1; pw <= 10; pw++ {
+	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
 		persistwg.Add(1)
 		go persistentSiteWorker(ctx, pw, siteJobs, &persistwg, rlctypes.Ctx.DB, true)
 	}
@@ -77,7 +78,8 @@ func doStateCollection(ctx context.Context) {
 }
 
 func ScheduleSiteCollection(ctx context.Context, wg *sync.WaitGroup) {
-	ticker := time.NewTicker(1 * time.Hour) // Run ever 1 hours
+	rlctypes.Ctx.Log.Infof("Setting up site collection timer for every %f hours", rlctypes.Ctx.Config.SiteTickerTimeHour.Hours())
+	ticker := time.NewTicker(rlctypes.Ctx.Config.SiteTickerTimeHour)
 	childCtx, cancel := context.WithCancel(ctx)
 	defer wg.Done()
 	for {
@@ -102,18 +104,18 @@ func doSiteCollection(ctx context.Context) {
 		return
 	}
 
-	siteJobs := make(chan cmtypes.Site, 10000)
-	persistJobs := make(chan cmtypes.Site, 10000)
+	siteJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.SiteChannelSize)
+	persistJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.PersistChannelSize)
 	var sitewg sync.WaitGroup
 	var persistwg sync.WaitGroup
 	var stats rlctypes.SafeCount
 
-	for siw := 1; siw <= 10; siw++ {
+	for siw := 1; siw <= rlctypes.Ctx.Config.SiteWorkerThreadCount; siw++ {
 		sitewg.Add(1)
 		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, &stats)
 	}
 
-	for pw := 1; pw <= 10; pw++ {
+	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
 		persistwg.Add(1)
 		go persistentSiteWorker(ctx, pw, persistJobs, &persistwg, rlctypes.Ctx.DB, false)
 	}
@@ -131,9 +133,9 @@ func doSiteCollection(ctx context.Context) {
 }
 
 func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
-	stateJobs := make(chan rlctypes.State, 60)
-	siteJobs := make(chan cmtypes.Site, 10000)
-	persistJobs := make(chan cmtypes.Site, 10000)
+	stateJobs := make(chan rlctypes.State, rlctypes.Ctx.Config.StateChannelSize)
+	siteJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.SiteChannelSize)
+	persistJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.PersistChannelSize)
 	var statewg sync.WaitGroup
 	var sitewg sync.WaitGroup
 	var persistwg sync.WaitGroup
@@ -142,17 +144,17 @@ func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	for stw := 1; stw <= 10; stw++ {
+	for stw := 1; stw <= rlctypes.Ctx.Config.StateWorkerThreadCount; stw++ {
 		statewg.Add(1)
 		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, &siteStats)
 	}
 
-	for siw := 1; siw <= 10; siw++ {
+	for siw := 1; siw <= rlctypes.Ctx.Config.SiteWorkerThreadCount; siw++ {
 		sitewg.Add(1)
 		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, &dataStats)
 	}
 
-	for pw := 1; pw <= 10; pw++ {
+	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
 		persistwg.Add(1)
 		go persistentSiteWorker(ctx, pw, persistJobs, &persistwg, rlctypes.Ctx.DB, true)
 	}

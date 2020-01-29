@@ -16,39 +16,87 @@
 package appcontext
 
 import (
+	"time"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"os"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
+	"github.com/kelseyhightower/envconfig"
 )
+
+const Prefix = "COLLECTOR"
 
 type AppContext struct {
 	DB        *gorm.DB
 	Log       *log.Logger
-	LogOutput string
+	Config    *Config
+}
+
+type Config struct {
+	LogFormatter 							string
+	LogLevel 									string
+	LogOutput 								string
+	DbUser										string `required:"true"`
+	DbPassword 								string `required:"true"`
+	DbHost 										string `required:"true"`
+	DbPort 										string `default:"5432"`
+	DbName 										string `required:"true"`
+	StateTickerTimeHour 			time.Duration `default:"24"`
+	SiteTickerTimeHour 				time.Duration `default:"1"`
+	StateChannelSize 					int32 `default:"60"`
+	SiteChannelSize 					int32 `default:"10000"`
+	PersistChannelSize 				int32 `default:"10000"`
+	StateWorkerThreadCount 		int `default:"10"`
+	SiteWorkerThreadCount 		int `default:"10"`
+	PersistWorkerThreadCount 	int `default:"10"`
 }
 
 func New() *AppContext {
 	var newCtx AppContext
-	newCtx.initializeFlags()
+	newCtx.initializeConfig()
 	newCtx.initializeLogger()
 	newCtx.initializeDB()
+	newCtx.Log.WithFields(log.Fields{
+		"LogFormatter": newCtx.Config.LogFormatter,
+		"LogLevel": newCtx.Config.LogLevel,
+		"LogOutput": newCtx.Config.LogOutput,
+		"DbUser": newCtx.Config.DbUser,
+		"DbPassword": "*********",
+		"DbHost": newCtx.Config.DbHost,
+		"DbPort": newCtx.Config.DbPort,
+		"DbName": newCtx.Config.DbName,
+		"StateTickerTimeHour": newCtx.Config.StateTickerTimeHour,
+		"SiteTickerTimeHour": newCtx.Config.SiteTickerTimeHour,
+		"StateChannelSize": newCtx.Config.StateChannelSize,
+		"SiteChannelSize": newCtx.Config.SiteChannelSize,
+		"PersistChannelSize": newCtx.Config.PersistChannelSize,
+		"StateWorkerThreadCount": newCtx.Config.StateWorkerThreadCount,
+		"SiteWorkerThreadCount": newCtx.Config.SiteWorkerThreadCount,
+		"PersistWorkerThreadCount": newCtx.Config.PersistWorkerThreadCount,
+	}).Debug("Collector Configuration Settings")
 	return &newCtx
 }
 
-func (asc *AppContext) initializeFlags() {
-	//asc.LogOutput = "/rlcollector.log"
-	asc.LogOutput = ""
+func (asc *AppContext) initializeConfig() {
+	var conf Config
+	err := envconfig.Process(Prefix, &conf)
+  if err != nil {
+  	log.Fatal(err.Error())
+	}
+	asc.Config = &conf
 }
 
 func (asc *AppContext) initializeLogger() {
-
 	asc.Log = log.New()
-	asc.Log.Formatter = new(log.JSONFormatter)
-	asc.Log.Level = log.TraceLevel
-	if asc.LogOutput != "" {
-		file, err := os.OpenFile(asc.LogOutput, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	asc.Log.SetFormatter(asc.Config.getLogFormatter())
+	level, err := log.ParseLevel(asc.Config.LogLevel)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	asc.Log.SetLevel(level)
+	if asc.Config.LogOutput != "" {
+		file, err := os.OpenFile(asc.Config.LogOutput, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err == nil {
 			asc.Log.Out = file
 		} else {
@@ -62,7 +110,11 @@ func (asc *AppContext) initializeLogger() {
 
 func (asc *AppContext) initializeDB() {
 	var err error
-	asc.DB = dbh.GetDbConnection()
+	asc.DB = dbh.GetDbConnection(	asc.Config.DbUser, 
+																asc.Config.DbPassword, 
+																asc.Config.DbName, 
+																asc.Config.DbHost, 
+																asc.Config.DbPort)
 
 	if err != nil {
 		log.Fatal(err)
@@ -72,4 +124,15 @@ func (asc *AppContext) initializeDB() {
 		&cmtypes.Site{},
 	)
 
+}
+
+func (conf *Config) getLogFormatter() log.Formatter {
+	switch conf.LogFormatter {
+	case cmtypes.Json:
+		return new(log.JSONFormatter)
+	case cmtypes.Text:
+		return new(log.TextFormatter)
+	default:
+		return new(log.JSONFormatter)
+	}
 }

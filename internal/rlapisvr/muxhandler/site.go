@@ -19,24 +19,26 @@ package muxhandler
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 )
 
 type SiteMux struct {
 	name string
 	db   *gorm.DB
+	log    *log.Logger
 }
 
-func NewSiteMux(sdb *gorm.DB) *SiteMux {
+func NewSiteMux(sdb *gorm.DB, log *log.Logger) *SiteMux {
 	site := SiteMux{
 		name: "SiteMux",
 		db:   sdb,
+		log: log,
 	}
 
 	return &site
@@ -48,7 +50,7 @@ func (sm *SiteMux) GetName() string {
 
 func (sm *SiteMux) InitRouter(router *mux.Router) {
 	if router == nil {
-		log.Fatal(errors.New("Fatal: null router"))
+		sm.log.Fatal(errors.New("Fatal: null router"))
 	}
 	router.HandleFunc("/api/v1/sites", sm.getSites).Methods("GET")
 	router.HandleFunc("/api/v1/site/{id}", sm.getSite).Methods("GET")
@@ -57,7 +59,7 @@ func (sm *SiteMux) InitRouter(router *mux.Router) {
 func (sm *SiteMux) getSites(w http.ResponseWriter, r *http.Request) {
 	Sites, err := dbh.GetSites(sm.db)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), sm.log)
 		return
 	}
 
@@ -68,7 +70,7 @@ func (sm *SiteMux) getSite(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if id == "" {
-		RespondWithError(w, http.StatusBadRequest, "Invalid Site ID")
+		RespondWithError(w, http.StatusBadRequest, "Invalid Site ID", sm.log)
 		return
 	}
 
@@ -77,9 +79,9 @@ func (sm *SiteMux) getSite(w http.ResponseWriter, r *http.Request) {
 	if err := dbh.GetSite(sm.db, &site); err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			RespondWithError(w, http.StatusNotFound, "Site not found")
+			RespondWithError(w, http.StatusNotFound, "Site not found", sm.log)
 		default:
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			RespondWithError(w, http.StatusInternalServerError, err.Error(), sm.log)
 		}
 		return
 	}
