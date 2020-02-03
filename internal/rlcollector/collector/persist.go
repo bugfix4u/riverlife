@@ -18,6 +18,7 @@ package collector
 import (
 	"context"
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
 	rlctypes "riverlife/internal/rlcollector/types"
@@ -36,7 +37,21 @@ func persistentSiteWorker(ctx context.Context, id int, siteJobs <-chan cmtypes.S
 		default:
 			rlctypes.Ctx.Log.Infof("Updating database for site %s", site.ID)
 			if err := dbh.CreateorUpdateSite(db, &site, checkCreate); err != nil {
-				rlctypes.Ctx.Log.Errorf("Failed to update DB with site %s", site.ID)
+				rlctypes.Ctx.Log.WithFields(log.Fields{
+					"ID":            site.ID,
+					"Location":      site.Location,
+					"State":         site.State,
+					"IsCurrent":     site.IsCurrent,
+					"IsInService":   site.IsInService,
+					"HasData":       site.HasData,
+					"CurrentLevel":  site.CurrentLevel,
+					"CurrentFlow":   site.CurrentFlow,
+					"SampleTime":    site.SampleTime,
+					"CurrentAction": site.CurrentAction,
+					"CreatedAt":     site.CreatedAt,
+					"UpdatedAt":     site.UpdatedAt,
+				}).Errorf("Failed to update DB with site %s", site.ID)
+				rlctypes.Ctx.Log.Error(err)
 			}
 		}
 	}

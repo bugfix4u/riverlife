@@ -19,15 +19,14 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	appctx "riverlife/internal/rlapisvr/appcontext"
+	rlatypes "riverlife/internal/rlapisvr/types"
 	"syscall"
 	"time"
-	rlatypes "riverlife/internal/rlapisvr/types"
-	appctx "riverlife/internal/rlapisvr/appcontext"
 )
 
-
 func main() {
- 	rlatypes.Ctx = appctx.New()
+	rlatypes.Ctx = appctx.New()
 	defer rlatypes.Ctx.DB.Close()
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

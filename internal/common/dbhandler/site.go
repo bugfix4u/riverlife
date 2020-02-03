@@ -35,9 +35,17 @@ func GetSites(db *gorm.DB) ([]*cmtypes.Site, error) {
 func CreateorUpdateSite(db *gorm.DB, site *cmtypes.Site, checkCreate bool) error {
 	var result *gorm.DB
 	if checkCreate {
-		result = db.Where("id = ?", site.ID).Assign(site).FirstOrCreate(site)
+		result = db.Where(cmtypes.Site{ID: site.ID}).Assign(site).FirstOrCreate(site)
 	} else {
-		result = db.Update(site)
+		result = db.Model(site).Updates(map[string]interface{}{"current_level": site.CurrentLevel,
+			"current_flow":   site.CurrentFlow,
+			"current_action": site.CurrentAction,
+			"has_data":       site.HasData,
+			"is_current":     site.IsCurrent,
+			"is_in_service":  site.IsInService,
+			"sample_time":    site.SampleTime,
+			"updated_at":     site.UpdatedAt,
+		})
 	}
 	return DbResults(result)
 }

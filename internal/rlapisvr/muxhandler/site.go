@@ -31,14 +31,14 @@ import (
 type SiteMux struct {
 	name string
 	db   *gorm.DB
-	log    *log.Logger
+	log  *log.Logger
 }
 
 func NewSiteMux(sdb *gorm.DB, log *log.Logger) *SiteMux {
 	site := SiteMux{
 		name: "SiteMux",
 		db:   sdb,
-		log: log,
+		log:  log,
 	}
 
 	return &site

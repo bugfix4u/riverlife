@@ -17,6 +17,9 @@ package collector
 
 import (
 	"context"
+	"fmt"
+	redis "github.com/mediocregopher/radix/v3"
+	"net/http"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
 	rlctypes "riverlife/internal/rlcollector/types"
@@ -48,11 +51,16 @@ func doStateCollection(ctx context.Context) {
 	siteJobs := make(chan cmtypes.Site, rlctypes.Ctx.Config.SiteChannelSize)
 	var statewg sync.WaitGroup
 	var persistwg sync.WaitGroup
-	var stats rlctypes.SafeCount
+	var siteStats rlctypes.SafeCount
+	var dataStats rlctypes.SafeCount
+
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
 
 	for stw := 1; stw <= rlctypes.Ctx.Config.StateWorkerThreadCount; stw++ {
 		statewg.Add(1)
-		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, &stats)
+		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, httpClient, &siteStats, &dataStats)
 	}
 
 	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
@@ -74,7 +82,9 @@ func doStateCollection(ctx context.Context) {
 	close(siteJobs)
 	persistwg.Wait()
 
-	rlctypes.Ctx.Log.Printf("Found %d locations", stats.Count)
+	rlctypes.Ctx.Log.Infof("Found %d locations", siteStats.Count)
+	rlctypes.Ctx.Log.Infof("Downloaded %f MB", float64(dataStats.Count)/float64(1024*1024))
+
 }
 
 func ScheduleSiteCollection(ctx context.Context, wg *sync.WaitGroup) {
@@ -110,9 +120,16 @@ func doSiteCollection(ctx context.Context) {
 	var persistwg sync.WaitGroup
 	var stats rlctypes.SafeCount
 
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	redisPool := createRedisClientPool()
+	defer redisPool.Close()
+
 	for siw := 1; siw <= rlctypes.Ctx.Config.SiteWorkerThreadCount; siw++ {
 		sitewg.Add(1)
-		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, &stats)
+		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, redisPool, httpClient, &stats)
 	}
 
 	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
@@ -129,7 +146,7 @@ func doSiteCollection(ctx context.Context) {
 	close(persistJobs)
 	persistwg.Wait()
 
-	rlctypes.Ctx.Log.Printf("Found %d locations", stats.Count)
+	rlctypes.Ctx.Log.Infof("Downloaded %f MB", float64(stats.Count)/float64(1024*1024))
 }
 
 func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
@@ -142,16 +159,23 @@ func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
 	var siteStats rlctypes.SafeCount
 	var dataStats rlctypes.SafeCount
 
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	redisPool := createRedisClientPool()
+	defer redisPool.Close()
+
 	defer wg.Done()
 
 	for stw := 1; stw <= rlctypes.Ctx.Config.StateWorkerThreadCount; stw++ {
 		statewg.Add(1)
-		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, &siteStats)
+		go statesWorker(ctx, stw, stateJobs, siteJobs, &statewg, httpClient, &siteStats, &dataStats)
 	}
 
 	for siw := 1; siw <= rlctypes.Ctx.Config.SiteWorkerThreadCount; siw++ {
 		sitewg.Add(1)
-		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, &dataStats)
+		go siteWorker(ctx, siw, siteJobs, persistJobs, &sitewg, redisPool, httpClient, &dataStats)
 	}
 
 	for pw := 1; pw <= rlctypes.Ctx.Config.PersistWorkerThreadCount; pw++ {
@@ -181,5 +205,17 @@ func DoStartupCollection(ctx context.Context, wg *sync.WaitGroup) {
 	persistwg.Wait()
 
 	rlctypes.Ctx.Log.Infof("Found %d locations", siteStats.Count)
-	rlctypes.Ctx.Log.Infof("Downloaded %f MB", float64(dataStats.Count/(1024*1024)))
+	rlctypes.Ctx.Log.Infof("Downloaded %f MB", float64(dataStats.Count)/float64(1024*1024))
+}
+
+func createRedisClientPool() *redis.Pool {
+	//Create a redis client pool with the same number of connections as the site worker thread count
+	redisAddress := fmt.Sprintf("%s:%s", rlctypes.Ctx.Config.RedisHost, rlctypes.Ctx.Config.RedisPort)
+	client, err := redis.NewPool("tcp", redisAddress, rlctypes.Ctx.Config.SiteWorkerThreadCount)
+	if err != nil {
+		rlctypes.Ctx.Log.Error("Error creating redis client pool")
+		return nil
+	}
+
+	return client
 }

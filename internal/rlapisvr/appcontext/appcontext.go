@@ -17,15 +17,15 @@
 package appcontext
 
 import (
-	"os"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	"net/http"
-	dbh "riverlife/internal/common/dbhandler"
-	mh "riverlife/internal/rlapisvr/muxhandler"
-	cmtypes "riverlife/internal/common/types"
-	log "github.com/sirupsen/logrus"
 	"github.com/kelseyhightower/envconfig"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	dbh "riverlife/internal/common/dbhandler"
+	cmtypes "riverlife/internal/common/types"
+	mh "riverlife/internal/rlapisvr/muxhandler"
 )
 
 const Prefix = "APISVR"
@@ -38,19 +38,19 @@ type AppContext struct {
 }
 
 type Config struct {
-	LogFormatter 							string
-	LogLevel 									string
-	LogOutput 								string
-	DbUser										string `required:"true"`
-	DbPassword 								string `required:"true"`
-	DbHost 										string `required:"true"`
-	DbPort 										string `default:"5432"`
-	DbName 										string `required:"true"`
-	IsHttps										bool `default:"false"`
-	HttpPort									string
-	DefaultPageCount					int32 `default:"500"`
-	TlsCertFile								string
-	TlsKeyFile								string
+	LogFormatter     string
+	LogLevel         string
+	LogOutput        string
+	DbUser           string `required:"true"`
+	DbPassword       string `required:"true"`
+	DbHost           string `required:"true"`
+	DbPort           string `default:"5432"`
+	DbName           string `required:"true"`
+	IsHttps          bool   `default:"false"`
+	HttpPort         string
+	DefaultPageCount int32 `default:"500"`
+	TlsCertFile      string
+	TlsKeyFile       string
 }
 
 func New() *AppContext {
@@ -60,18 +60,18 @@ func New() *AppContext {
 	newCtx.initializeDB()
 	newCtx.initializeRouter()
 	newCtx.Log.WithFields(log.Fields{
-		"LogFormatter": newCtx.Config.LogFormatter,
-		"LogLevel": newCtx.Config.LogLevel,
-		"LogOutput": newCtx.Config.LogOutput,
-		"DbUser": newCtx.Config.DbUser,
-		"DbPassword": "*********",
-		"DbHost": newCtx.Config.DbHost,
-		"DbPort": newCtx.Config.DbPort,
-		"IsHttps": newCtx.Config.IsHttps,
-		"HttpPort": newCtx.Config.HttpPort,
+		"LogFormatter":     newCtx.Config.LogFormatter,
+		"LogLevel":         newCtx.Config.LogLevel,
+		"LogOutput":        newCtx.Config.LogOutput,
+		"DbUser":           newCtx.Config.DbUser,
+		"DbPassword":       "*********",
+		"DbHost":           newCtx.Config.DbHost,
+		"DbPort":           newCtx.Config.DbPort,
+		"IsHttps":          newCtx.Config.IsHttps,
+		"HttpPort":         newCtx.Config.HttpPort,
 		"DefaultPageCount": newCtx.Config.DefaultPageCount,
-		"TlsCertFile": newCtx.Config.TlsCertFile,
-		"TlsKeyFile": newCtx.Config.TlsKeyFile,
+		"TlsCertFile":      newCtx.Config.TlsCertFile,
+		"TlsKeyFile":       newCtx.Config.TlsKeyFile,
 	}).Debug("Apisvr Configuration Settings")
 	return &newCtx
 }
@@ -79,8 +79,8 @@ func New() *AppContext {
 func (asc *AppContext) initializeConfig() {
 	var conf Config
 	err := envconfig.Process(Prefix, &conf)
-  if err != nil {
-  	log.Fatal(err.Error())
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	if conf.IsHttps {
@@ -98,7 +98,7 @@ func (asc *AppContext) initializeConfig() {
 	}
 
 	asc.Config = &conf
-	
+
 }
 
 func (asc *AppContext) initializeLogger() {
@@ -124,12 +124,13 @@ func (asc *AppContext) initializeLogger() {
 
 func (asc *AppContext) initializeDB() {
 	asc.Log.Info("Setting up DB connection")
-	asc.DB = dbh.GetDbConnection(	asc.Config.DbUser, 
-																asc.Config.DbPassword, 
-																asc.Config.DbName, 
-																asc.Config.DbHost, 
-																asc.Config.DbPort,
+	asc.DB = dbh.GetDbConnection(asc.Config.DbUser,
+		asc.Config.DbPassword,
+		asc.Config.DbName,
+		asc.Config.DbHost,
+		asc.Config.DbPort,
 	)
+	asc.DB.SetLogger(asc.Log)
 }
 
 func (asc *AppContext) initializeRouter() {

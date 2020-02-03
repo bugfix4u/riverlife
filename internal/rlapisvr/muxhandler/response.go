@@ -18,8 +18,8 @@ package muxhandler
 
 import (
 	"encoding/json"
-	"net/http"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func RespondWithError(w http.ResponseWriter, code int, message string, log *log.Logger) {

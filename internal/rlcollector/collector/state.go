@@ -19,8 +19,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/mmcdole/gofeed"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	cmtypes "riverlife/internal/common/types"
@@ -33,7 +36,9 @@ func statesWorker(ctx context.Context, id int,
 	stateJobs <-chan rlctypes.State,
 	siteJobs chan<- cmtypes.Site,
 	wg *sync.WaitGroup,
-	count *rlctypes.SafeCount) {
+	httpClient *http.Client,
+	count *rlctypes.SafeCount,
+	dataStats *rlctypes.SafeCount) {
 
 	rlctypes.Ctx.Log.Infof("Starting State Worker %d", id)
 	defer wg.Done()
@@ -45,22 +50,32 @@ func statesWorker(ctx context.Context, id int,
 			return
 		default:
 			rlctypes.Ctx.Log.Infof("Starting parser on State Worker %d", id)
-			count.IncCount(parseStateRSS(state, siteJobs))
+			count.IncCount(parseStateRSS(state, siteJobs, httpClient, dataStats))
 			rlctypes.Ctx.Log.Infof("Ending parser on State Worker %d", id)
 		}
 	}
 	rlctypes.Ctx.Log.Infof("State Worker %d finished", id)
 }
 
-func parseStateRSS(state rlctypes.State, siteJobs chan<- cmtypes.Site) int64 {
+func parseStateRSS(state rlctypes.State, siteJobs chan<- cmtypes.Site, httpClient *http.Client, dataStats *rlctypes.SafeCount) int64 {
 	rlctypes.Ctx.Log.Infof("Loading locations for " + state.State)
-	parser := gofeed.NewParser()
-	feed, err := parser.ParseURL(fmt.Sprintf(rlctypes.StateURL, state.Abbr))
+
+	rssContent, err := getFeed(fmt.Sprintf(rlctypes.StateURL, state.Abbr), httpClient, dataStats)
+	defer rssContent.Close()
 	if err != nil {
-		rlctypes.Ctx.Log.Errorf("Error finding state " + state.State)
+		rlctypes.Ctx.Log.Errorf("Error dowloading data for state " + state.State)
 		rlctypes.Ctx.Log.Error(err)
 		return 0
 	}
+
+	parser := gofeed.NewParser()
+	feed, err := parser.Parse(rssContent)
+	if err != nil {
+		rlctypes.Ctx.Log.Errorf("Error parsing state " + state.State)
+		rlctypes.Ctx.Log.Error(err)
+		return 0
+	}
+
 	var site cmtypes.Site
 	var count int64
 	for _, item := range feed.Items {
@@ -89,7 +104,7 @@ func parseStateRSS(state rlctypes.State, siteJobs chan<- cmtypes.Site) int64 {
 		if loc > 0 {
 			runes := []rune(value)
 			site.ID = strings.TrimSpace(string(runes[0:loc]))
-			location := strings.TrimSpace(string(runes[loc+1 : len(runes)]))
+			location := strings.TrimSpace(string(runes[loc+1:]))
 
 			runes = []rune(location)
 			start := strings.LastIndex(location, "(")
@@ -174,10 +189,24 @@ func cleanLocationString(location string) string {
 			if stop+1 >= len(runes) {
 				endString = ""
 			} else {
-				endString = strings.TrimSpace(string(runes[stop+1 : len(runes)]))
+				endString = strings.TrimSpace(string(runes[stop+1:]))
 			}
 			cleanLocation = fmt.Sprintf("%s %s", startString, endString)
 		}
 	}
 	return cleanLocation
+}
+
+func getFeed(url string, client *http.Client, dataStats *rlctypes.SafeCount) (io.ReadCloser, error) {
+	if client == nil || url == "" {
+		return nil, errors.New("Invalid parameters passed to getFeed")
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	if resp.ContentLength > 0 {
+		dataStats.IncCount(resp.ContentLength)
+	}
+	return resp.Body, nil
 }

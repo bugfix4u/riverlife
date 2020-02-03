@@ -20,6 +20,16 @@ services:
       ports:
          - 5432:5432
    
+   rl-redis:
+      image: rl-redis:${RL_VERSION}
+      container_name: rl-redis
+      hostname: rl-redis
+      tty: true
+      stdin_open: true
+      restart: always
+      networks:
+         - rl-network
+   
    rl-collector:
       image: rl-collector:${RL_VERSION}
       container_name: rl-collector

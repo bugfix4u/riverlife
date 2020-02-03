@@ -16,40 +16,42 @@
 package appcontext
 
 import (
-	"time"
 	"github.com/jinzhu/gorm"
+	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"os"
 	dbh "riverlife/internal/common/dbhandler"
 	cmtypes "riverlife/internal/common/types"
-	"github.com/kelseyhightower/envconfig"
+	"time"
 )
 
 const Prefix = "COLLECTOR"
 
 type AppContext struct {
-	DB        *gorm.DB
-	Log       *log.Logger
-	Config    *Config
+	DB     *gorm.DB
+	Log    *log.Logger
+	Config *Config
 }
 
 type Config struct {
-	LogFormatter 							string
-	LogLevel 									string
-	LogOutput 								string
-	DbUser										string `required:"true"`
-	DbPassword 								string `required:"true"`
-	DbHost 										string `required:"true"`
-	DbPort 										string `default:"5432"`
-	DbName 										string `required:"true"`
-	StateTickerTimeHour 			time.Duration `default:"24"`
-	SiteTickerTimeHour 				time.Duration `default:"1"`
-	StateChannelSize 					int32 `default:"60"`
-	SiteChannelSize 					int32 `default:"10000"`
-	PersistChannelSize 				int32 `default:"10000"`
-	StateWorkerThreadCount 		int `default:"10"`
-	SiteWorkerThreadCount 		int `default:"10"`
-	PersistWorkerThreadCount 	int `default:"10"`
+	LogFormatter             string
+	LogLevel                 string
+	LogOutput                string
+	DbUser                   string        `required:"true"`
+	DbPassword               string        `required:"true"`
+	DbHost                   string        `required:"true"`
+	DbPort                   string        `default:"5432"`
+	DbName                   string        `required:"true"`
+	StateTickerTimeHour      time.Duration `default:"24"`
+	SiteTickerTimeHour       time.Duration `default:"1"`
+	StateChannelSize         int32         `default:"60"`
+	SiteChannelSize          int32         `default:"10000"`
+	PersistChannelSize       int32         `default:"10000"`
+	StateWorkerThreadCount   int           `default:"10"`
+	SiteWorkerThreadCount    int           `default:"10"`
+	PersistWorkerThreadCount int           `default:"10"`
+	RedisHost                string        `required:"true"`
+	RedisPort                string        `required:"true"`
 }
 
 func New() *AppContext {
@@ -58,22 +60,24 @@ func New() *AppContext {
 	newCtx.initializeLogger()
 	newCtx.initializeDB()
 	newCtx.Log.WithFields(log.Fields{
-		"LogFormatter": newCtx.Config.LogFormatter,
-		"LogLevel": newCtx.Config.LogLevel,
-		"LogOutput": newCtx.Config.LogOutput,
-		"DbUser": newCtx.Config.DbUser,
-		"DbPassword": "*********",
-		"DbHost": newCtx.Config.DbHost,
-		"DbPort": newCtx.Config.DbPort,
-		"DbName": newCtx.Config.DbName,
-		"StateTickerTimeHour": newCtx.Config.StateTickerTimeHour,
-		"SiteTickerTimeHour": newCtx.Config.SiteTickerTimeHour,
-		"StateChannelSize": newCtx.Config.StateChannelSize,
-		"SiteChannelSize": newCtx.Config.SiteChannelSize,
-		"PersistChannelSize": newCtx.Config.PersistChannelSize,
-		"StateWorkerThreadCount": newCtx.Config.StateWorkerThreadCount,
-		"SiteWorkerThreadCount": newCtx.Config.SiteWorkerThreadCount,
+		"LogFormatter":             newCtx.Config.LogFormatter,
+		"LogLevel":                 newCtx.Config.LogLevel,
+		"LogOutput":                newCtx.Config.LogOutput,
+		"DbUser":                   newCtx.Config.DbUser,
+		"DbPassword":               "*********",
+		"DbHost":                   newCtx.Config.DbHost,
+		"DbPort":                   newCtx.Config.DbPort,
+		"DbName":                   newCtx.Config.DbName,
+		"StateTickerTimeHour":      newCtx.Config.StateTickerTimeHour,
+		"SiteTickerTimeHour":       newCtx.Config.SiteTickerTimeHour,
+		"StateChannelSize":         newCtx.Config.StateChannelSize,
+		"SiteChannelSize":          newCtx.Config.SiteChannelSize,
+		"PersistChannelSize":       newCtx.Config.PersistChannelSize,
+		"StateWorkerThreadCount":   newCtx.Config.StateWorkerThreadCount,
+		"SiteWorkerThreadCount":    newCtx.Config.SiteWorkerThreadCount,
 		"PersistWorkerThreadCount": newCtx.Config.PersistWorkerThreadCount,
+		"RedisHost":                newCtx.Config.RedisHost,
+		"RedisPort":                newCtx.Config.RedisPort,
 	}).Debug("Collector Configuration Settings")
 	return &newCtx
 }
@@ -81,8 +85,8 @@ func New() *AppContext {
 func (asc *AppContext) initializeConfig() {
 	var conf Config
 	err := envconfig.Process(Prefix, &conf)
-  if err != nil {
-  	log.Fatal(err.Error())
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 	asc.Config = &conf
 }
@@ -110,17 +114,23 @@ func (asc *AppContext) initializeLogger() {
 
 func (asc *AppContext) initializeDB() {
 	var err error
-	asc.DB = dbh.GetDbConnection(	asc.Config.DbUser, 
-																asc.Config.DbPassword, 
-																asc.Config.DbName, 
-																asc.Config.DbHost, 
-																asc.Config.DbPort)
+	asc.DB = dbh.GetDbConnection(asc.Config.DbUser,
+		asc.Config.DbPassword,
+		asc.Config.DbName,
+		asc.Config.DbHost,
+		asc.Config.DbPort)
+
+	asc.DB.SetLogger(asc.Log)
+
+	if asc.Config.LogLevel == "debug" || asc.Config.LogLevel == "trace" {
+		asc.DB.LogMode(true)
+	}
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	asc.DB.SingularTable(true)
-	asc.DB.Debug().AutoMigrate(
+	asc.DB.AutoMigrate(
 		&cmtypes.Site{},
 	)
 

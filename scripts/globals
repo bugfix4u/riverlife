@@ -18,7 +18,7 @@ export CONFIG_LOCATION=${RLCODE}/configs
 
 # Array of RL microservices
 declare -a RL_COMPILED_SERVICES=("apisvr" "collector")
-declare -a RL_DOCKER_ONLY_SERVICES=("postgres")
+declare -a RL_DOCKER_ONLY_SERVICES=("postgres" "redis")
 
 # Add a container startup delay
 # (delay before using)
